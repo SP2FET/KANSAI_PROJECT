@@ -5,29 +5,38 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
+frameQueueLength = 2;
+frameQueue = []
+
 cap = cv2.VideoCapture(0)
 
 while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
 
-    # Our operations on the frame come here
+    #CAPTTYRE IMAGE FRAMES
+    ret, frame = cap.read()
+    frameList.append()
+
+    # ADDING KEY POINTS TO KEY POINTS QUEUE
+    frameQueue.append(frame)
+    if len(frameQueue) > frameQueueLength:
+        del frameQueue[0]
+
+    #FINDING KEYPOINTS
     orb = cv2.ORB_create()
     kp = orb.detect(frame, None)
     kp, des = orb.compute(frame, kp)
 
-
-    # EXTRACTION AND PRINT OF X,Y FROM KEYPOINTS
+    #EXTRACTION AND PRINT OF X,Y FROM KEYPOINTS
     for idx in range(len(kp)):
         x = kp[idx].pt[0]
         y = kp[idx].pt[1]
 
         print("x: %s y: %s "% (x,y))
 
-
+    #DRAWING POINTS
     img2 = frame.copy()
     for marker in kp:
-        img2 = cv2.drawMarker(img2, tuple(int(i) for i in marker.pt), color=(255, 255, 255))
+        img2 = cv2.drawMarker(img2, tuple(int(i) for i in marker.pt), color=(0, 255, 255))
 
     # Display the resulting frame
     cv2.imshow('frame',img2)
