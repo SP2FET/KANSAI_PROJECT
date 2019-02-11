@@ -14,7 +14,6 @@ while(True):
 
     #CAPTTYRE IMAGE FRAMES
     ret, frame = cap.read()
-    frameList.append()
 
     # ADDING KEY POINTS TO KEY POINTS QUEUE
     frameQueue.append(frame)
@@ -25,6 +24,8 @@ while(True):
     orb = cv2.ORB_create()
     kp = orb.detect(frame, None)
     kp, des = orb.compute(frame, kp)
+
+
 
     #EXTRACTION AND PRINT OF X,Y FROM KEYPOINTS
     for idx in range(len(kp)):
