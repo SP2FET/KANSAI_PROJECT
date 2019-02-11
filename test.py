@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-import cv2 as opencv
-=======
+
 import cv2
->>>>>>> Stashed changes
-=======
+
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
@@ -26,8 +22,8 @@ while(True):
         x = kp[idx].pt[0]
         y = kp[idx].pt[1]
 
-        print (x)
-        print (y)
+        print("x: %s y: %s "% (x,y))
+
 
     img2 = frame.copy()
     for marker in kp:
@@ -41,4 +37,4 @@ while(True):
 # When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows()
->>>>>>> master
+
