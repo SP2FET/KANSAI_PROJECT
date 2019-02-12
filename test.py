@@ -29,22 +29,6 @@ while(True):
         kp1, des1 = orb.detectAndCompute(frameQueue[0], None)
         kp2, des2 = orb.detectAndCompute(frameQueue[1], None)
 
-
-
-    #EXTRACTION AND PRINT OF X,Y FROM KEYPOINTS
-    # for idx in range(len(kp)):
-    #     x = kp[idx].pt[0]
-    #     y = kp[idx].pt[1]
-    #
-    #     print("x: %s y: %s "% (x,y))
-
-    #DRAWING POINTS
-    # img2 = frame.copy()
-    # for marker in kp:
-    #     img2 = cv2.drawMarker(img2, tuple(int(i) for i in marker.pt), color=(0, 255, 255))
-
-    # Display the resulting frame
-    #cv2.imshow('frame',img2)
     # create BFMatcher object
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
@@ -63,6 +47,14 @@ while(True):
         coords2 = [kp2[mat.trainIdx].pt for mat in matches]
             #print("x: %s y: %s "% (x,y))
 
+        coords1 = np.float32(coords1)
+        coords2 = np.float32(coords2)
+        #RASNAC
+        focal = 1.0
+        E, mask = cv2.findEssentialMat(coords2, coords1, focal = 1.0, pp = (0.,0.), method = cv2.RANSAC, prob = 0.999, threshold = 1.0)
+        #R, t = cv2.recoverPose(E, pcoords2, coords1, focal = 1.0, pp = (0.,0.), mask)
+        points, R, t,mask = cv2.recoverPose(E, coords2, coords1)
+
 
         # drawing matched points
         for marker in coords1[:maxMatches]:
@@ -71,11 +63,10 @@ while(True):
         cv2.imshow('frame', img4)
 
         # obtaining distance
-        dist_x = (coords1[0][0] - coords2[0][0])
-        dist_y = (coords1[0][1] - coords2[0][1])
-        if dist_x != 0:
-
-            print("distance: %d,%d" % (dist_x,dist_y) )
+        #dist_x = (coords1[0][0] - coords2[0][0])
+        #dist_y = (coords1[0][1] - coords2[0][1])
+        # if dist_x != 0:
+        #print("distance: %d,%d" % (dist_x,dist_y) )
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
