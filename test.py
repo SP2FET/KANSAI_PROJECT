@@ -72,7 +72,7 @@ while(True):
 
         # obtaining distance
         dist_x = (coords1[0][0] - coords2[0][0])
-        dist_y = (coords1[0][1] - coords2[0][1])
+        dist_y   = (coords1[0][1] - coords2[0][1])
         if dist_x != 0:
 
             print("distance: %d,%d" % (dist_x,dist_y) )
