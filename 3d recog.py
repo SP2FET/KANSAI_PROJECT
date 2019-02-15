@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 img4 = 0
 maxMatches = 50
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture("krstn.mov")
 
 ret, frame1 = cap.read()
 orb = cv2.ORB_create(10)
@@ -20,7 +20,6 @@ def cls():
     os.system("clear")
 
 #position of a camera
-x,y =[0],[0]
 #dynamic plot
 fig = plt.figure()
 ax = fig.add_subplot(111)
@@ -30,9 +29,14 @@ ax.set_ylim([-1000,1000])
 plt.ion()
 plt.show()
 
+x = []
+y = []
+
 R_pos = [[1,0,0],[0,1,0],[0,0,1]]
 t_pos = [[0],[0],[0]]
-scale = 1;
+scale = 1
+focal = 718.8560
+pp = (607.1928, 185.2157)
 
 while(True):
 
@@ -67,8 +71,7 @@ while(True):
     if coords1.size > 10 and coords2.size > 10:
 
         # RASNAC
-        focal = 1.0
-        E, mask = cv2.findEssentialMat(coords2, coords1, focal=1.0, pp=(0., 0.), method=cv2.RANSAC, prob=0.999, threshold=1.0)
+        E, mask = cv2.findEssentialMat(coords2, coords1, focal, pp, method=cv2.RANSAC, prob=0.999, threshold=1.0)
         # R, t = cv2.recoverPose(E, pcoords2, coords1, focal = 1.0, pp = (0.,0.), mask)
         points, R, t, mask = cv2.recoverPose(E, coords2, coords1)
 
@@ -80,23 +83,10 @@ while(True):
         for marker in coords1[:maxMatches]:
             img4 = cv2.drawMarker(img3, tuple(int(i) for i in marker), color=(0, 255, 255))
 
-        th_x = math.asin(R[2][1])
-        th_y = math.atan(-R[2][0]/R[2][2])
-        th_z = math.atan(-R[0][1]/R[1][1])
-
-
-        print("\r{0} {1} {2}".format(th_x, th_y, th_z), end="")
-
-
-        theta = [0.0, th_z]
-
-        r = [0.0, 0.5]
-
-        #qplt.polar(theta, r)
-
 
         y.append(t_pos[1])
         x.append(t_pos[0])
+
         if min(x) < min(y):
             mindim = min(x)
         else:
