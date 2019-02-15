@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 img4 = 0
 maxMatches = 50
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 ret, frame1 = cap.read()
 orb = cv2.ORB_create(10)
@@ -22,16 +22,17 @@ def cls():
 #position of a camera
 x,y =[0],[0]
 #dynamic plot
-# fig = plt.figure()
-# ax = fig.add_subplot(111)
-# Ln, = ax.plot([0,0])
-# ax.set_xlim([-1000,1000])
-# ax.set_ylim([-1000,1000])
-# plt.ion()
+fig = plt.figure()
+ax = fig.add_subplot(111)
+Ln, = ax.plot([0,0])
+ax.set_xlim([-1000,1000])
+ax.set_ylim([-1000,1000])
+plt.ion()
 plt.show()
 
 R_pos = [[1,0,0],[0,1,0],[0,0,1]]
 t_pos = [[0],[0],[0]]
+scale = 1;
 
 while(True):
 
@@ -71,13 +72,9 @@ while(True):
         # R, t = cv2.recoverPose(E, pcoords2, coords1, focal = 1.0, pp = (0.,0.), mask)
         points, R, t, mask = cv2.recoverPose(E, coords2, coords1)
 
-        t_p = np.dot(t.T, R_pos)
-        t_pos = t_pos + t_p.T
-        R_pos = np.dot(R, R_pos)
 
-        # print(R_pos)
-        # print(t_pos)
-        # print("===========================")
+        t_pos = t_pos + scale * np.dot(R_pos,t)
+        R_pos = np.dot(R, R_pos)
 
         # drawing matched points
         for marker in coords1[:maxMatches]:
@@ -95,20 +92,26 @@ while(True):
 
         r = [0.0, 0.5]
 
-        plt.polar(theta, r)
+        #qplt.polar(theta, r)
 
 
-        # y.append(t_pos[1])
-        # x.append(t_pos[0])
-        #
-        # # ax.set_xlim([-max(x), max(x)])
-        # # ax.set_ylim([-max(y), max(y)])
-        #
-        # ax.set_xlim([-max(x) - 5, max(x) + 5])
-        # ax.set_ylim([-max(y) - 5, max(y) + 5])
-        #
-        # Ln.set_ydata(y)
-        # Ln.set_xdata(x)
+        y.append(t_pos[1])
+        x.append(t_pos[0])
+        if min(x) < min(y):
+            mindim = min(x)
+        else:
+            mindim = min(y)
+
+        if max(x) > max(y):
+            maxdim = max(x)
+        else:
+            maxdim = max(y)
+
+        ax.set_xlim([mindim - 5.0, maxdim + 5.0])
+        ax.set_ylim([mindim - 5.0, maxdim + 5.0])
+
+        Ln.set_ydata(y)
+        Ln.set_xdata(x)
         plt.pause(0.003)
 
         cv2.waitKey(1)
