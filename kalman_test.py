@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 def norm(_loc=0.0, _scale=1.0, _size=(1)):
     return ran.normal(_loc, _scale, _size)
 
+print("a")
+
 ####################################################################
 ###########################  初期値の設定  ##########################
 ####################################################################
@@ -22,18 +24,18 @@ calc_num = 1000
 end_time = calc_num * dt
 # 正規分布の発生に関するパラメータ
 mean_a = 0
-sigma_a = 1
+sigma_a = 3
 mean_z = 0
-sigma_z = 1
+sigma_z = 10
 
 def noise():
     # noise = random.uniform(-5.0, 5.0)
-    noise = ran.normal(loc = mean_z, scale = sigma_z, size = (10))
+    noise = ran.normal(loc = mean_z, scale = sigma_z, size = (1))
     return noise
 
 def accel():
     # accel = random.uniform(-5.0, 5.0)
-    accel = ran.normal(loc = mean_a, scale = sigma_a, size = (10))
+    accel = ran.normal(loc = mean_a, scale = sigma_a, size = (1))
     return accel
 
 first = random.uniform(-30.0, 30.0)
