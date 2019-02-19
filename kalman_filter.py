@@ -1,217 +1,163 @@
+# -*- coding: utf-8 -*-
 import numpy as np
-import numpy.random as rd
-import pandas as pd
-
-import matplotlib
-from matplotlib import font_manager
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+import numpy.random as ran
 import random
+import matplotlib.pyplot as plt
 
-sns.set(style="whitegrid", palette="muted", color_codes=True)
+# generate norm
+def norm(_loc=0.0, _scale=1.0, _size=(1)):
+    return ran.normal(_loc, _scale, _size)
 
-N = 200
+####################################################################
+###########################  初期値の設定  ##########################
+####################################################################
+flag = True
 
-a = -2
-b = -1
-
-n_particle = 10**3 * 5
-sigma_2 = 2**a
-alpha_2 = 10**b
-
+# 時刻
+global_time = 0
+# t+1の刻み設定
+dt=0.1
+# 計算回数
+calc_num = 1000
+end_time = calc_num * dt
 # 正規分布の発生に関するパラメータ
 mean_a = 0
-sigma_a = 1
+sigma_a = 3
 mean_z = 0
-sigma_z = 1
+sigma_z = 10
 
 def noise():
-    # noise = random.uniform(low = -5.0, high = 5.0)
-    # noise = rd.normal(loc = mean_z, scale = sigma_z, size = (1))
-    noise = rd.triangular(left = -10, mode = 0, right = 10)
+    # noise = random.uniform(-5.0, 5.0)
+    noise = ran.normal(loc = mean_z, scale = sigma_z, size = (1))
     return noise
 
 def accel():
     # accel = random.uniform(-5.0, 5.0)
-    accel = rd.normal(loc = mean_a, scale = sigma_a, size = (10))
-    # accel = triangular(left, mode, right[, size])
+    accel = ran.normal(loc = mean_a, scale = sigma_a, size = (1))
     return accel
 
+first = random.uniform(-30.0, 30.0)
+first_er = norm(mean_z, sigma_z)
 
-def make_pandas_data(n):
+print("初期真値 : "+str(first))
+print("初期誤差 : "+str(first_er))
+print("初期和 : "+str(first + first_er))
 
-    dt = 0.1
+# 単位行列
+I = np.matrix([[1 , 0],
+               [0, 1]])
+# Plot用
+ground_truth_position=[]
+observed_position=[]
+estimate_position=[]
+time_series=[]
 
-    first = random.uniform(-5.0, 5.0)
+# ground_truth_position.append(first)
+# observed_position.append(first_er)
 
-    ground_truth_position = []
-    observed_position = []
+##########       状態方程式        ##########
+# トロッコの位置と速度: [位置, 加速度]
+x_k = np.matrix([
+                [first_er],
+                [0]
+            ])
 
-    # 運動方程式 [位置+(加速度*時間), 加速度]
-    F = np.matrix([
-        [1, dt],
-        [0, 1]
-    ])
+x_k_true = np.matrix([
+                [first],
+                [0]
+            ])
+x_k_k = x_k_true + x_k
 
-    # 時間遷移に関する雑音モデルの行列 (0平均かつQの正規分布に従う)
-    G = np.matrix([
-        [(dt ** 2) / 2],
-        [dt]
-    ])
+# 運動方程式 [位置+(加速度*時間), 加速度]
+F = np.matrix([
+                [1, dt],
+                [0, 1]
+            ])
+# 時間遷移に関する雑音モデルの行列 (0平均かつQの正規分布に従う)
+G = np.matrix([
+                [(dt**2) / 2],
+                [dt]
+            ])
 
-    # 位置のみを線形写像する観測モデル
-    H = np.matrix([
-        1,
-        0
-    ])
+##########       観測方程式        ##########
+# 誤差行列
+p_k = np.matrix([
+                [0, 0],
+                [0, 0]
+             ])
+p_k_k = p_k
+# 位置のみを線形写像する観測モデル
+H = np.matrix([
+                1,
+                0
+             ])
+# cov(Gw_k) = (sigma_a)^2 * (G)(G^T): 共分散
+Q = (sigma_a**2) * G * G.T
+# R = E(v_k*(v_k)^t) = (sigma_z)^2: ?
+R = sigma_z**2
 
-    x_k_true = np.matrix([
-        [first],
-        [0]
-    ])
+v_k = first_er
 
-    for i in range(n):
-        #observed position list
-        # v_k : noise
+####################################################################
+###########################  計算スタート  ##########################
+####################################################################
+while global_time < end_time:
+
+    ##########       観測        ##########
+
+    # v_k: 観測誤差 (偶然誤差)
+    if (flag == True):
+        flag = False
+    else:
         v_k = noise()
-        z_k = H * x_k_true + v_k
-        observed_position.append(z_k.tolist()[0][0])
+    # z_k = Hx_k + v_k: トロッコの位置をセンサで観測する
+    z_k = H * x_k_true + v_k
+    observed_position.append(z_k.tolist()[0][0])
 
-        # w_k : inputed acceralation 入力された加速度
-        w_k = accel()
+    ##########       予測        ##########
+    # w_k = [a_k]: トロッコの加速度(誤差混み)
+    w_k = accel()
+    # Fx_{k-1} + Gw_k: 現時刻における予測推定値
+    x_k = (F * x_k_k) + (G * w_k)
 
-        #real position list
-        x_k_true = (F * x_k_true) + (G * w_k)
-        ground_truth_position.append(x_k_true.tolist()[0][0])
+    ## 真値(次の位置)
+    # Fx_{k-1} + Gw_k: （補正しない）現時刻における予測推定値
+    x_k_true = (F * x_k_true) + (G * w_k)
+    ground_truth_position.append(x_k_true.tolist()[0][0])
 
-    ground_truth_df = pd.DataFrame(ground_truth_position, columns = ["data"])
-    observed_df = pd.DataFrame(observed_position, columns = ["data"])
-
-    return ground_truth_df, observed_df
-
-
-class ParticleFilter(object):
-    def __init__(self, y, n_particle, sigma_2, alpha_2):
-        self.y = y
-        self.n_particle = n_particle
-        self.sigma_2 = sigma_2
-        self.alpha_2 = alpha_2
-        self.log_likelihood = -np.inf
-
-    def norm_likelihood(self, y, x, s2):
-        return (np.sqrt(2 * np.pi * s2)) ** (-1) * np.exp(-(y - x) ** 2 / (2 * s2))
-
-    def F_inv(self, w_cumsum, idx, u):
-        if np.any(w_cumsum < u) == False:
-            return 0
-        k = np.max(idx[w_cumsum < u])
-        return k + 1
-
-    def resampling(self, weights):
-        w_cumsum = np.cumsum(weights)
-        idx = np.asanyarray(range(self.n_particle))
-        k_list = np.zeros(self.n_particle, dtype=np.int32)  # サンプリングしたkのリスト格納場所
-
-        # 一様分布から重みに応じてリサンプリングする添え字を取得
-        for i, u in enumerate(rd.uniform(0, 1, size=self.n_particle)):
-            k = self.F_inv(w_cumsum, idx, u)
-            k_list[i] = k
-        return k_list
-
-    def resampling2(self, weights):
-        """
-        計算量の少ない層化サンプリング
-        """
-        idx = np.asanyarray(range(self.n_particle))
-        u0 = rd.uniform(0, 1 / self.n_particle)
-        u = [1 / self.n_particle * i + u0 for i in range(self.n_particle)]
-        w_cumsum = np.cumsum(weights)
-        k = np.asanyarray([self.F_inv(w_cumsum, idx, val) for val in u])
-        return k
-
-    def simulate(self, seed=71):
-        rd.seed(seed)
-
-        # 時系列データ数
-        T = len(self.y)
-
-        # 潜在変数
-        x = np.zeros((T + 1, self.n_particle))
-        x_resampled = np.zeros((T + 1, self.n_particle))
+    ##########     補正と更新     ##########
+    # F * P_{k-1} * F^T + G_k * Q_k * (G_k)^T: 現時刻における予測誤差行列
+    p_k = F * p_k_k * F.T + Q
+    # R + H * P_k * H^T: 観測残差の共分散
+    S_k = (H * p_k) * H.T + R
+    # P_k * H^T * S^-1: 最適カルマンゲイン
+    K_k = p_k * H.T * S_k.I
+    # z_k - H * x_k: 観測残差
+    e_k = z_k - H * x_k
+    # x_k + K_k * e_k: 位置の補正
+    if (flag == True):
+        flag = False
+    else:
+        x_k_k = x_k + K_k * e_k
+    estimate_position.append(x_k_k.tolist()[0][0])
+    # (I - K_k * H) * p_k_k: 更新された誤差の共分散
+    p_k_k = (I - K_k * H) * p_k
 
 
-        # $1 Set particle first time
-        # 潜在変数の初期値
-        initial_x = rd.normal(0, 1, size=self.n_particle)
-        x_resampled[0] = initial_x
-        x[0] = initial_x
 
-        # 重み
-        w = np.zeros((T, self.n_particle))
-        w_normed = np.zeros((T, self.n_particle))
-
-        l = np.zeros(T)  # 時刻毎の尤度
-
-        for t in range(T):
-            print("\r calculating... t={}".format(t), end="")
-            for i in range(self.n_particle):
-                # $2 Set next particle with special noise
-                # 1階差分トレンドを適用
-                v = rd.normal(0, np.sqrt(self.alpha_2 * self.sigma_2))  # System Noise
-                x[t + 1, i] = x_resampled[t, i] + v  # システムノイズの付加
-                # $3 Calculate likelihood from y[n - 1] with dedicated Gaussian
-                w[t, i] = self.norm_likelihood(self.y[t], x[t + 1, i], self.sigma_2)  # y[t]に対する各粒子の尤度
-            # $4 Adjust for sum of weight gets to 1.0
-            w_normed[t] = w[t] / np.sum(w[t])  # 規格化
-            l[t] = np.log(np.sum(w[t]))  # 各時刻対数尤度
-
-            # $5 Resampling
-            # k = self.resampling(w_normed[t]) # リサンプルで取得した粒子の添字
-            k = self.resampling2(w_normed[t])  # リサンプルで取得した粒子の添字（層化サンプリング）
-            x_resampled[t + 1] = x[t + 1, k]
-
-        # 全体の対数尤度
-        self.log_likelihood = np.sum(l) - T * np.log(n_particle)
-
-        self.x = x
-        self.x_resampled = x_resampled
-        self.w = w
-        self.w_normed = w_normed
-        self.l = l
-
-    # $6 load average
-    def get_filtered_value(self):
-        """
-        尤度の重みで加重平均した値でフィルタリングされ値を算出
-        """
-        return np.diag(np.dot(self.w_normed, self.x[1:].T))
-
-    def draw_graph(self, ground_truth_df):
-        # グラフ描画
-        T = len(self.y)
-
-        plt.figure(figsize=(16, 8))
-        plt.plot(range(T), self.y, color="b", label="observed")
-        plt.plot(range(T), ground_truth_df, color="r", marker="", label="groundtruth")
-        plt.plot(self.get_filtered_value(), "g", label="estimated")
-
-        for t in range(T):
-            plt.scatter(np.ones(self.n_particle) * t, self.x[t], color="lightgray", s=2, alpha=0.1)
-
-        plt.title("sigma^2={0}, alpha^2={1}, log likelihood={2:.3f}".format(self.sigma_2,
-                                                                            self.alpha_2,
-                                                                            self.log_likelihood))
-        plt.show()
-
-def main():
-    ground_truth_df, observed_df = make_pandas_data(N)
-
-    pf = ParticleFilter(observed_df.data.values, n_particle, sigma_2, alpha_2)
-
-    pf.simulate()
-
-    pf.draw_graph(ground_truth_df)
+    ##########    タイムカウント    ##########
+    time_series.append(global_time)
+    global_time += dt
 
 
-if __name__ == "__main__": main()
+MSE = np.sum((np.array(ground_truth_position)-np.array(observed_position))**2)
+print("観測誤差"+str(MSE))
+MSE = np.sum((np.array(ground_truth_position)-np.array(estimate_position))**2)
+print("カルマンフィルタによる推定誤差"+str(MSE))
+
+
+plt.plot(time_series, observed_position, color="green", marker="", label="observed")
+plt.plot(time_series, estimate_position, color="red", marker="", label="estimation")
+plt.plot(time_series, ground_truth_position, color="blue", marker="", label="groundtruth")
+plt.legend()
+plt.show()
